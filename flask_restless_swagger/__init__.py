@@ -96,7 +96,7 @@ class SwagAPIManager(object):
         self.swagger['info']['description'] = value
 
     def add_path(self, model, **kwargs):
-        name = model.__tablename__
+        name = kwargs['collection_name'] if 'collection_name' in kwargs.keys() else model.__tablename__
         schema = model.__name__
         path = kwargs.get('url_prefix', "") + '/' + name
         id_path = "{0}/{{{1}Id}}".format(path, schema.lower())
@@ -164,6 +164,33 @@ class SwagAPIManager(object):
                         'type': 'integer'
                     }],
                     'responses': {
+                        204: {
+                            'description': 'Success'
+                        }
+
+                    }
+                }
+                if model.__doc__:
+                    self.swagger['paths'][id_path]['description'] = model.__doc__
+            elif method == 'put' or method == 'patch':
+                if id_path not in self.swagger['paths']:
+                    self.swagger['paths'][id_path] = {}
+                self.swagger['paths']["{0}/{{{1}Id}}".format(path, schema.lower())][method] = {
+                    'tags': [schema],
+                    'parameters': [{
+                        'name': schema.lower() + 'Id',
+                        'in': 'path',
+                        'description': 'ID of ' + schema,
+                        'required': True,
+                        'type': 'integer'
+                    }, {
+                        'name': name,
+                        'in': 'body',
+                        'description': schema,
+                        'required': True,
+                        'schema': {"$ref": "#/definitions/" + schema}
+                    }],
+                    'responses': {
                         200: {
                             'description': 'Success'
                         }
@@ -183,7 +210,7 @@ class SwagAPIManager(object):
                         'schema': {"$ref": "#/definitions/" + schema}
                     }],
                     'responses': {
-                        200: {
+                        201: {
                             'description': 'Success'
                         }
 
